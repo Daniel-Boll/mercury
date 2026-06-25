@@ -12,6 +12,8 @@ AI agent skills that audit, optimize, and automate LinkedIn profile management, 
 
 See [`diagram.html`](diagram.html) for a visual of how the skills work together.
 
+![How the LinkedIn skills work](diagram.png)
+
 ## Requirements
 
 ### MCP Servers
