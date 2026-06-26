@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-26
+
 ### Added
 
 - Windows prebuilt binary (`windows-x64`). The release workflow now cross-compiles
@@ -76,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cache-bust the update check to avoid raw CDN staleness.
 - Bootstrap script: use ASCII `...` instead of a multibyte ellipsis.
 
-[Unreleased]: https://github.com/Daniel-Boll/mercury/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Daniel-Boll/mercury/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Daniel-Boll/mercury/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Daniel-Boll/mercury/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Daniel-Boll/mercury/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Daniel-Boll/mercury/releases/tag/v0.2.0
