@@ -74,8 +74,17 @@ async function fetchLatest(): Promise<string | null> {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(REPO_RAW, {
+    // Cache-bust: raw.githubusercontent.com edge-caches package.json for
+    // ~5 min (max-age=300). An unknown query param forces a fresh read so a
+    // just-pushed release isn't masked by a stale CDN copy. (Skip for file://
+    // URLs used in tests, which don't accept query strings.)
+    const isHttp = /^https?:/i.test(REPO_RAW);
+    const url = isHttp
+      ? `${REPO_RAW}${REPO_RAW.includes("?") ? "&" : "?"}t=${Date.now()}`
+      : REPO_RAW;
+    const res = await fetch(url, {
       signal: ctrl.signal,
+      cache: "no-store",
       headers: { accept: "application/json" },
     });
     clearTimeout(t);
