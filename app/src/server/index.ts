@@ -6,6 +6,9 @@ import { int, str } from "../cli/flags.ts";
 import { ensureHome, paths } from "../paths.ts";
 import { db } from "../db/index.ts";
 import { queries } from "./queries.ts";
+import { SessionManager } from "../acp/session.ts";
+import { PROVIDERS } from "../acp/providers.ts";
+import { loadConfig } from "../paths.ts";
 
 /** Directory holding the built Svelte assets (web/dist), resolved next to this file or the binary. */
 function webDir(): string {
@@ -30,6 +33,9 @@ export async function dashboardCmd(flags: Flags): Promise<void> {
   const root = webDir();
 
   const sockets = new Set<import("bun").ServerWebSocket<WSData>>();
+
+  // ACP session manager — forwards agent updates to all connected sockets.
+  const acp = new SessionManager(process.cwd(), (event) => broadcast(sockets, event));
 
   const server = Bun.serve<WSData>({
     port,
@@ -65,6 +71,28 @@ export async function dashboardCmd(flags: Flags): Promise<void> {
         // Search endpoints (Phase 2) — POST with JSON body, hit LinkedIn MCP.
         if (path.startsWith("/api/search/")) {
           return handleSearch(path, req);
+        }
+        // ACP endpoints (Phase 3) — launch skills via the agent.
+        if (path === "/api/acp/providers") {
+          const cfg = loadConfig();
+          return Response.json({
+            providers: Object.values(PROVIDERS).map((p) => ({ id: p.id, displayName: p.displayName })),
+            default: cfg.provider ?? "opencode",
+          });
+        }
+        if (path === "/api/acp/run" && req.method === "POST") {
+          const body = (await req.json().catch(() => ({}))) as {
+            provider?: string;
+            skill?: string;
+            params?: Record<string, string>;
+          };
+          // Fire and forget — progress streams over the WebSocket.
+          void acp.run(body.provider ?? "opencode", body.skill ?? "", body.params ?? {});
+          return Response.json({ ok: true });
+        }
+        if (path === "/api/acp/cancel" && req.method === "POST") {
+          acp.cancel();
+          return Response.json({ ok: true });
         }
         return handleApi(path);
       }

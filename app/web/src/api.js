@@ -8,29 +8,48 @@ export async function api(path) {
   return res.json();
 }
 
+export async function post(path, body) {
+  const res = await fetch(`/api/${path}?token=${encodeURIComponent(TOKEN)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  return json;
+}
+
 /**
- * Connect to the live-update WebSocket. Calls `onChange(table)` whenever the
- * CLI (or agent) writes to the DB, so views can re-fetch.
+ * Single shared WebSocket. Subscribers receive every message; the connection
+ * auto-reconnects. Returns an unsubscribe fn.
  */
+const subs = new Set();
+let sharedWs;
+let retryTimer;
+
+function ensureWs() {
+  if (sharedWs && sharedWs.readyState <= 1) return;
+  sharedWs = new WebSocket(`ws://${location.host}/ws?token=${encodeURIComponent(TOKEN)}`);
+  sharedWs.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    for (const fn of subs) fn(msg);
+  };
+  sharedWs.onclose = () => {
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(ensureWs, 1500);
+  };
+}
+
+export function subscribe(fn) {
+  ensureWs();
+  subs.add(fn);
+  return () => subs.delete(fn);
+}
+
+/** Back-compat helper: fire onChange(table) only on DB change events. */
 export function liveUpdates(onChange) {
-  let ws;
-  let retry;
-  const connect = () => {
-    ws = new WebSocket(`ws://${location.host}/ws?token=${encodeURIComponent(TOKEN)}`);
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === "changed") onChange(msg.table);
-      } catch {}
-    };
-    ws.onclose = () => {
-      clearTimeout(retry);
-      retry = setTimeout(connect, 1500);
-    };
-  };
-  connect();
-  return () => {
-    clearTimeout(retry);
-    ws?.close();
-  };
+  return subscribe((msg) => {
+    if (msg.type === "changed") onChange(msg.table);
+  });
 }
