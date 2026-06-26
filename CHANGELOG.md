@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-26
+
 ### Fixed
 
 - **Dashboard "shows nothing then suddenly shows results" bug.** Every section
@@ -16,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   use an explicit loading / error / empty / data state machine: a loading
   placeholder shows first, real fetch errors surface with a Retry button, and the
   "run the skill" CTA appears only when a table is truly empty.
+- **Dashboard slow first load.** `/api/acp/providers` shelled out to
+  `opencode models` and `claude config list` via blocking `spawnSync` on every
+  call (~17s, no caching; `claude config list` hung and ignored the kill). Model
+  enumeration is now async with a hard 4s timeout, memoized per provider, and
+  warmed in the background at startup — the endpoint went from ~17s to ~2ms.
+- **Applications with no linked job rendered blank.** Rows now derive a readable
+  "Role / Target" label from the artifact filename and are flagged `· unlinked`.
 
 ### Changed
 
@@ -100,7 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cache-bust the update check to avoid raw CDN staleness.
 - Bootstrap script: use ASCII `...` instead of a multibyte ellipsis.
 
-[Unreleased]: https://github.com/Daniel-Boll/mercury/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Daniel-Boll/mercury/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Daniel-Boll/mercury/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Daniel-Boll/mercury/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Daniel-Boll/mercury/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Daniel-Boll/mercury/compare/v0.2.0...v0.3.0
