@@ -8,6 +8,19 @@
 
   const apps = resource(() => api("applications"), []);
   useLiveTable("applications", apps.reload);
+
+  // Some applications aren't linked to a scouted job (job_id is null) — e.g.
+  // resume-tailor produced files for a target that was never saved to the jobs
+  // table. Fall back to a readable label derived from the artifact filename so
+  // the row isn't blank.
+  function derivedLabel(a) {
+    if (a.job_title) return a.job_title;
+    const path = a.resume_path || a.cover_letter_path || a.report_path;
+    if (!path) return "—";
+    const base = path.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "";
+    if (!base) return "—";
+    return base.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 </script>
 
 <h1 class="page-title">Applications</h1>
@@ -24,11 +37,14 @@
 {:else}
   <div class="panel">
     <table>
-      <thead><tr><th>Role</th><th>Company</th><th>Keyword Score</th><th>Status</th><th>Files</th></tr></thead>
+      <thead><tr><th>Role / Target</th><th>Company</th><th>Keyword Score</th><th>Status</th><th>Files</th></tr></thead>
       <tbody>
         {#each apps.data as a}
           <tr>
-            <td>{a.job_title ?? "—"}</td>
+            <td>
+              {derivedLabel(a)}
+              {#if !a.job_id}<span class="dim text-[0.72rem]" title="Not linked to a scouted job">· unlinked</span>{/if}
+            </td>
             <td>{a.company_name ?? "—"}</td>
             <td>{a.keyword_score != null ? `${a.keyword_score}%` : "—"}</td>
             <td class="dim">{a.status}</td>

@@ -126,6 +126,14 @@ export async function dashboardCmd(flags: Flags): Promise<void> {
 
   // Write lockfile so the CLI can notify us of DB changes.
   writeFileSync(paths.serverLock, JSON.stringify({ port: server.port, token, pid: process.pid }));
+
+  // Warm the provider/model cache in the background so the first visit to
+  // Launch/Profile (which call /api/acp/providers) doesn't pay the cold-start
+  // cost of shelling out to `opencode models` / `claude config list`.
+  void Promise.all(
+    Object.values(PROVIDERS).map((p) => listProviderModels(p.id).catch(() => [])),
+  );
+
   const cleanup = () => {
     try {
       if (existsSync(paths.serverLock)) unlinkSync(paths.serverLock);

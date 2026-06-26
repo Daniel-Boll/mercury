@@ -52,51 +52,80 @@ export function getProvider(id: string | undefined): AcpProvider {
   return PROVIDERS[id ?? "opencode"] ?? PROVIDERS.opencode!;
 }
 
+/** Spawn a command, capture stdout, and abandon it if it exceeds `timeoutMs`.
+ *  Async (never blocks the event loop) and bounded by a hard Promise.race so a
+ *  CLI that ignores SIGKILL still can't stall the caller past the timeout. */
+async function runWithTimeout(cmd: string[], timeoutMs: number): Promise<string | null> {
+  try {
+    const proc = Bun.spawn(cmd, { stdout: "pipe", stderr: "ignore" });
+    const collect = (async () => {
+      const [out, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      return exitCode === 0 ? out : null;
+    })();
+    const timeout = new Promise<null>((resolve) =>
+      setTimeout(() => {
+        try { proc.kill("SIGKILL"); } catch {}
+        resolve(null);
+      }, timeoutMs),
+    );
+    return await Promise.race([collect, timeout]);
+  } catch {
+    return null;
+  }
+}
+
+/** Model-list cache. Enumerating models shells out to slow CLIs (`opencode
+ *  models`, and `claude config list` can take 15s+), so cache the result per
+ *  provider for the lifetime of the dashboard process with a short TTL. */
+const MODELS_TTL_MS = 5 * 60 * 1000;
+const MODELS_SPAWN_TIMEOUT_MS = 4000;
+const _modelCache = new Map<string, { at: number; models: string[] }>();
+
 /**
  * Enumerate available models for a provider by invoking its native CLI.
+ * Cached (5 min TTL) and bounded by an 8s spawn timeout so the dashboard
+ * never blocks on a slow or hanging CLI.
  *
  * - OpenCode: runs `opencode models` and parses line-oriented output.
- *   Returns an empty array on any error (command missing, non-zero exit,
- *   unparseable output).
  * - Claude Code: runs `claude config list` and extracts availableModels.
- * - Unknown providers return an empty array.
+ * - Unknown providers return the static list from the provider definition.
+ * Returns an empty array on any error (command missing, timeout, non-zero exit).
  */
 export async function listProviderModels(providerId: string): Promise<string[]> {
+  const cached = _modelCache.get(providerId);
+  if (cached && Date.now() - cached.at < MODELS_TTL_MS) return cached.models;
+
+  let models: string[];
   switch (providerId) {
     case "opencode":
-      return listOpenCodeModels();
+      models = await listOpenCodeModels();
+      break;
     case "claude-code":
-      return listClaudeCodeModels();
+      models = await listClaudeCodeModels();
+      break;
     default:
-      // Fall back to the static list baked into the provider definition.
-      return PROVIDERS[providerId]?.models ?? [];
+      models = PROVIDERS[providerId]?.models ?? [];
   }
+  _modelCache.set(providerId, { at: Date.now(), models });
+  return models;
 }
 
 async function listOpenCodeModels(): Promise<string[]> {
-  try {
-    const proc = Bun.spawnSync(["opencode", "models"]);
-    if (!proc.success || proc.exitCode !== 0) return [];
-    const out = proc.stdout.toString().trim();
-    if (!out) return [];
-    const models = out
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith("#") && !l.startsWith("//"));
-    return models;
-  } catch {
-    return [];
-  }
+  const out = (await runWithTimeout(["opencode", "models"], MODELS_SPAWN_TIMEOUT_MS))?.trim();
+  if (!out) return [];
+  return out
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("#") && !l.startsWith("//"));
 }
 
 async function listClaudeCodeModels(): Promise<string[]> {
-  try {
-    const proc = Bun.spawnSync(["claude", "config", "list"]);
-    if (!proc.success || proc.exitCode !== 0) return [];
-    return parseClaudeConfigModels(proc.stdout.toString());
-  } catch {
-    return [];
-  }
+  const out = await runWithTimeout(["claude", "config", "list"], MODELS_SPAWN_TIMEOUT_MS);
+  if (!out) return [];
+  return parseClaudeConfigModels(out);
 }
 
 function parseClaudeConfigModels(out: string): string[] {
