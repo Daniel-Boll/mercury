@@ -59,7 +59,7 @@
     if (prev === provider) return;
     const cur = providers.find((p) => p.id === provider);
     if (!cur || !cur.models || !cur.models.length) { model = ""; return; }
-    if (!model || !cur.models.includes(model)) model = cur.models[0];
+    if (model && !cur.models.includes(model)) model = "";
   });
 
   function push(kind, text, append = false) {
@@ -75,7 +75,7 @@
     log = [];
     const params = { query, location, company, jobIds };
     const selectedProvider = providers.find((p) => p.id === provider);
-    const selectedModel = selectedProvider?.models?.includes(model) ? model : "";
+    const selectedModel = selectedProvider?.models?.includes(model) ? model : undefined;
     try {
       await post("acp/run", { provider, model: selectedModel, skill, params });
     } catch (e) {
@@ -107,7 +107,8 @@
       </select>
     </label>
     <label>Model
-      <select bind:value={model} disabled={(providers.find(p => p.id === provider)?.models ?? []).length === 0}>
+      <select bind:value={model}>
+        <option value="">Default</option>
         {#each (providers.find(p => p.id === provider)?.models ?? []) as m}
           <option value={m}>{m}</option>
         {/each}
@@ -137,7 +138,7 @@
   </div>
 
   <div style="margin-top:14px;display:flex;gap:10px">
-    <button class="go" onclick={launch} disabled={running || (providers.find(p => p.id === provider)?.models ?? []).length === 0}>{running ? "Running…" : "Launch"}</button>
+    <button class="go" onclick={launch} disabled={running}>{running ? "Running…" : "Launch"}</button>
     {#if running}<button class="cancel" onclick={cancel}>Cancel</button>{/if}
   </div>
 </div>
