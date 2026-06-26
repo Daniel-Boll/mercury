@@ -149,7 +149,7 @@ install_prebuilt() {
   local tmp; tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
 
-  info "Downloading $asset…"
+  info "Downloading ${asset}…"
   curl -fsSL "$base/$asset" -o "$tmp/mercury" || { warn "Binary download failed."; return 1; }
 
   # Verify checksum when SHA256SUMS is published and a hasher is available.
@@ -174,7 +174,7 @@ install_prebuilt() {
 
   # Skills still ship in the repo; grab just the skills/ tree from the tag.
   if [ "${MERCURY_NO_SKILLS:-0}" != "1" ]; then
-    info "Fetching skills for $tag…"
+    info "Fetching skills for ${tag}…"
     if curl -fsSL "https://codeload.github.com/${REPO_SLUG}/tar.gz/refs/tags/${tag}" -o "$tmp/src.tgz" 2>/dev/null \
        && tar -xzf "$tmp/src.tgz" -C "$tmp" 2>/dev/null; then
       local extracted; extracted="$(find "$tmp" -maxdepth 1 -type d -name 'mercury-*' | head -1)"
