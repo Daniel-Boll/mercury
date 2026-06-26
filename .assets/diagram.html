@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mercury — How It Works</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0a0a0f;
+        color: #e4e4e7;
+        padding: 40px 20px 80px;
+    }
+    .wrap { max-width: 1400px; margin: 0 auto; }
+    h1 {
+        text-align: center; font-size: 2.1rem; font-weight: 800; margin-bottom: 6px;
+        background: linear-gradient(135deg, #0077b5, #6dd5ed);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .sub { text-align: center; color: #71717a; font-size: .95rem; margin-bottom: 40px; }
+
+    .section-label {
+        text-align:center; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+        color:#52525b; margin: 0 auto 14px;
+    }
+
+    /* entry */
+    .entry {
+        max-width: 680px; margin: 0 auto 8px; text-align: center;
+        background: linear-gradient(135deg,#1a1a2e,#16213e);
+        border: 1px solid #0077b5; border-radius: 14px; padding: 16px 20px;
+    }
+    .entry .t { font-weight: 700; display:flex; gap:8px; justify-content:center; align-items:center; }
+    .entry .d { font-size: .82rem; color:#a1a1aa; margin-top:4px; }
+    .stem { width:2px; height:22px; background:#27272a; margin:0 auto; }
+    .router {
+        max-width: 680px; margin: 10px auto 6px; text-align:center;
+        font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:#52525b;
+    }
+
+    /* periodic feeder (experience-bank) */
+    .feeder {
+        max-width: 680px; margin: 0 auto 10px;
+        background:#101014; border:1px solid #3a2d4d; border-left:3px solid #a855f7;
+        border-radius:12px; padding:14px 18px;
+    }
+    .feeder-head { display:flex; align-items:center; gap:10px; }
+    .feeder-title { font-weight:700; font-size:.98rem; color:#c4b5fd; }
+    .feeder-badge { margin-left:auto; font-size:.64rem; text-transform:uppercase; letter-spacing:.08em;
+        background:rgba(168,85,247,.15); color:#c4b5fd; padding:2px 8px; border-radius:999px; }
+    .feeder-desc { font-size:.78rem; color:#9b9ba3; line-height:1.5; margin-top:6px; }
+    .feeder-flow { font-size:.72rem; color:#7c7c87; margin-top:8px; font-family:ui-monospace,monospace; }
+    .feeder-flow b { color:#c4b5fd; }
+
+    /* lanes */
+    .lanes { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:8px; align-items:start; }
+
+    .lane { border-radius:16px; padding:16px 14px 20px; background:#101014; border:1px solid #1f1f26; }
+    .lane-head { display:flex; align-items:center; gap:9px; margin-bottom:4px; }
+    .lane-icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .lane-title { font-weight:700; font-size:.95rem; line-height:1.1; }
+    .lane-num { margin-left:auto; font-size:.7rem; color:#52525b; font-weight:700; }
+    .lane-trigger { font-size:.7rem; color:#71717a; margin:6px 0 14px; font-style:italic; line-height:1.35; }
+
+    .step { position:relative; }
+    .step-box { background:#16161c; border:1px solid #2a2a32; border-radius:9px; padding:9px 11px; position:relative; }
+    .step-n { position:absolute; top:-8px; left:-8px; width:20px; height:20px; border-radius:50%;
+        font-size:.68rem; font-weight:700; display:flex; align-items:center; justify-content:center; color:#0a0a0f; }
+    .step-title { font-size:.8rem; font-weight:600; margin-bottom:2px; }
+    .step-desc { font-size:.72rem; color:#9b9ba3; line-height:1.4; }
+    .tool { display:inline-block; margin-top:6px; font-size:.62rem; font-weight:600; padding:2px 6px; border-radius:4px; }
+    .tool.li { background:#08283b; color:#4db8e8; }
+    .tool.pw { background:#2a2233; color:#c4a5e8; }
+    .tool.ai { background:#1e1b4b; color:#a5b4fc; }
+    .tool.db { background:#0d2818; color:#4ade80; }
+    .connector { width:2px; height:14px; margin:0 auto; }
+
+    .opt .lane-icon { background:rgba(34,197,94,.12); } .opt .step-n { background:#22c55e; } .opt .connector { background:#1e4d2b; } .opt .lane-title { color:#4ade80; }
+    .scout .lane-icon { background:rgba(0,160,220,.12); } .scout .step-n { background:#00a0dc; } .scout .connector { background:#0a3a4d; } .scout .lane-title { color:#38bdf8; }
+    .tailor .lane-icon { background:rgba(99,102,241,.14); } .tailor .step-n { background:#6366f1; } .tailor .connector { background:#272163; } .tailor .lane-title { color:#a5b4fc; }
+    .out .lane-icon { background:rgba(245,158,11,.12); } .out .step-n { background:#f59e0b; } .out .connector { background:#4d3a0a; } .out .lane-title { color:#fbbf24; }
+
+    .result { margin-top:12px; background:#0d0d12; border:1px dashed #3a3a44; border-radius:9px;
+        padding:8px 11px; font-size:.74rem; color:#cbd5e1; display:flex; gap:7px; align-items:flex-start; }
+    .result b { color:#e4e4e7; }
+
+    /* persistence bar */
+    .persist {
+        margin:28px auto 0; max-width:1100px;
+        background:#0d150f; border:1px solid #1c3a26; border-radius:14px; padding:16px 20px;
+        display:flex; align-items:center; gap:14px; justify-content:center; flex-wrap:wrap;
+    }
+    .persist .icn { width:30px; height:30px; border-radius:8px; background:rgba(34,197,94,.12); display:flex; align-items:center; justify-content:center; }
+    .persist .txt { font-size:.82rem; color:#9b9ba3; line-height:1.5; }
+    .persist .txt b { color:#4ade80; }
+    .persist code { background:#15241a; padding:1px 5px; border-radius:4px; font-size:.72rem; color:#86efac; }
+
+    /* infra footer */
+    .infra { margin-top:30px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .infra-card { background:#101014; border:1px solid #1f1f26; border-radius:14px; padding:18px; }
+    .infra-card h3 { font-size:.9rem; display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+    .infra-card p { font-size:.77rem; color:#9b9ba3; line-height:1.5; }
+    .infra-card code { background:#1c1c24; padding:1px 5px; border-radius:4px; font-size:.71rem; color:#cbd5e1; }
+
+    .legend { display:flex; gap:18px; justify-content:center; margin-top:28px; flex-wrap:wrap; font-size:.74rem; color:#a1a1aa; }
+    .legend span { display:flex; align-items:center; gap:6px; }
+    .dot { width:11px; height:11px; border-radius:3px; }
+
+    @media (max-width:1100px){ .lanes{grid-template-columns:repeat(2,1fr);} .infra{grid-template-columns:1fr;} }
+    @media (max-width:620px){ .lanes{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>How Mercury Works</h1>
+    <p class="sub">Your AI job-search companion — skills + a local dashboard over LinkedIn MCP, Chrome MCP &amp; ACP</p>
+
+    <!-- entry -->
+    <div class="entry">
+        <div class="t">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6dd5ed" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+            Request — in chat or from the dashboard's Launch tab
+        </div>
+        <div class="d">"Improve my profile" · "Find backend roles in São Paulo" · "Grill me on recent work" · "Tailor my resume for these roles" · "Connect me with Uber recruiters"</div>
+    </div>
+    <div class="stem"></div>
+    <div class="router">Agent matches intent → loads the right skill (via opencode or Claude Code over ACP)</div>
+    <div class="stem"></div>
+
+    <!-- periodic feeder: experience-bank -->
+    <div class="feeder">
+        <div class="feeder-head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4L12 16.8 5.7 21.4 8 14 2 9.4h7.6z"/></svg>
+            <div class="feeder-title">Experience Bank — "grill me"</div>
+            <span class="feeder-badge">Periodic · not per-application</span>
+        </div>
+        <div class="feeder-desc">A STAR-style self-interview you run occasionally (quarterly / after shipping something). Seeds from your existing bank + base resume + LinkedIn so it only asks about gaps, then stores tagged achievements. Resume Tailor reads this pool to surface relevant work that doesn't fit on the short base resume.</div>
+        <div class="feeder-flow">experience-bank ──writes──▶ <b>.mercury/experience/</b> ──read-only──▶ resume-tailor</div>
+    </div>
+    <div class="stem"></div>
+
+    <div class="section-label">The per-application pipeline</div>
+
+    <!-- lanes -->
+    <div class="lanes">
+
+        <!-- ===== PROFILE OPTIMIZER ===== -->
+        <div class="lane opt">
+            <div class="lane-head">
+                <div class="lane-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M12 20V10M6 20V4M18 20v-6"/></svg></div>
+                <div class="lane-title">Profile Optimizer</div>
+                <span class="lane-num">①</span>
+            </div>
+            <div class="lane-trigger">"audit my profile", "get more recruiter messages"</div>
+
+            <div class="step"><div class="step-box"><div class="step-n">1</div>
+                <div class="step-title">Pull profile + analytics</div>
+                <div class="step-desc">All sections, search appearances, views, connections</div>
+                <span class="tool li">LinkedIn MCP · get_person_profile</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">2</div>
+                <div class="step-title">Audit + rank pitfalls</div>
+                <div class="step-desc">Headline, location, Open-to-Work, skills, empty sections</div>
+                <span class="tool ai">Agent reasoning</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">3</div>
+                <div class="step-title">Edit live in browser</div>
+                <div class="step-desc">Open-to-Work, headline, skills, languages, About, projects</div>
+                <span class="tool pw">Chrome MCP · navigate/fill/click</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">4</div>
+                <div class="step-title">Record metrics</div>
+                <div class="step-desc">Score + analytics snapshot → charts over time</div>
+                <span class="tool db">mercury metric record</span>
+            </div></div>
+
+            <div class="result">✅ <span><b>Discoverable profile</b> + scored snapshot</span></div>
+        </div>
+
+        <!-- ===== JOB SCOUT ===== -->
+        <div class="lane scout">
+            <div class="lane-head">
+                <div class="lane-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></div>
+                <div class="lane-title">Job Scout</div>
+                <span class="lane-num">②</span>
+            </div>
+            <div class="lane-trigger">"find roles at X", "remote jobs paying USD"</div>
+
+            <div class="step"><div class="step-box"><div class="step-n">1</div>
+                <div class="step-title">Gather criteria</div>
+                <div class="step-desc">Companies, location, work type, level, stack, comp</div>
+                <span class="tool ai">Agent reasoning</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">2</div>
+                <div class="step-title">Parallel job search</div>
+                <div class="step-desc">Multiple queries by company + location + work type</div>
+                <span class="tool li">LinkedIn MCP · search_jobs</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">3</div>
+                <div class="step-title">Fetch + assess fit</div>
+                <div class="step-desc">Reqs, comp, English; Strong / Good / Stretch + caveats</div>
+                <span class="tool li">LinkedIn MCP · get_job_details</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">4</div>
+                <div class="step-title">Save shortlist</div>
+                <div class="step-desc">Ranked roles w/ fit, IDs, links</div>
+                <span class="tool db">mercury job save</span>
+            </div></div>
+
+            <div class="result">📋 <span><b>Prioritized shortlist</b> in your hub</span></div>
+        </div>
+
+        <!-- ===== RESUME TAILOR ===== -->
+        <div class="lane tailor">
+            <div class="lane-head">
+                <div class="lane-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
+                <div class="lane-title">Resume Tailor</div>
+                <span class="lane-num">③</span>
+            </div>
+            <div class="lane-trigger">"tailor my resume for these roles"</div>
+
+            <div class="step"><div class="step-box"><div class="step-n">1</div>
+                <div class="step-title">Gather inputs</div>
+                <div class="step-desc">Base resume + experience bank + profile + job details</div>
+                <span class="tool db">.mercury/experience/</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">2</div>
+                <div class="step-title">Gap / match analysis</div>
+                <div class="step-desc">Strong / transferable / gap; "in your bank, not resume"</div>
+                <span class="tool ai">Agent reasoning</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">3</div>
+                <div class="step-title">Tailor + cover letter</div>
+                <div class="step-desc">ATS-aligned Typst per role; pulls bank entries; full letter</div>
+                <span class="tool ai">Agent reasoning</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">4</div>
+                <div class="step-title">Save application</div>
+                <div class="step-desc">Resume + cover + report + keyword score</div>
+                <span class="tool db">mercury application add</span>
+            </div></div>
+
+            <div class="result">📝 <span><b>Role-tailored resume</b> + cover letter</span></div>
+        </div>
+
+        <!-- ===== RECRUITER OUTREACH ===== -->
+        <div class="lane out">
+            <div class="lane-head">
+                <div class="lane-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg></div>
+                <div class="lane-title">Recruiter Outreach</div>
+                <span class="lane-num">④</span>
+            </div>
+            <div class="lane-trigger">"find recruiters at X", "connect me with contacts"</div>
+
+            <div class="step"><div class="step-box"><div class="step-n">1</div>
+                <div class="step-title">Resolve company URNs</div>
+                <div class="step-desc">People-search needs numeric IDs — names are ignored</div>
+                <span class="tool li">LinkedIn MCP · get_company_profile</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">2</div>
+                <div class="step-title">Search + prioritize</div>
+                <div class="step-desc">Same city &gt; 2nd-degree &gt; mutuals &gt; technical title</div>
+                <span class="tool li">LinkedIn MCP · search_people</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">3</div>
+                <div class="step-title">Send tailored notes</div>
+                <div class="step-desc">&lt;300 chars; user confirms; batched ≤10–15/session</div>
+                <span class="tool li">LinkedIn MCP · connect_with_person</span>
+            </div></div>
+            <div class="connector"></div>
+
+            <div class="step"><div class="step-box"><div class="step-n">4</div>
+                <div class="step-title">Track pipeline</div>
+                <div class="step-desc">Kanban status: pending → accepted → replied → …</div>
+                <span class="tool db">mercury recruiter add</span>
+            </div></div>
+
+            <div class="result">🤝 <span><b>Warm pipeline</b> — tracked outreach</span></div>
+        </div>
+    </div>
+
+    <!-- persistence -->
+    <div class="persist">
+        <div class="icn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg></div>
+        <div class="txt">Every skill writes through the <b>mercury CLI</b> into one local <code>~/.mercury/mercury.db</code> — the same store the <b>dashboard</b> reads and live-updates over WebSocket. One schema, one source of truth.</div>
+    </div>
+
+    <!-- infra -->
+    <div class="infra">
+        <div class="infra-card">
+            <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="#4db8e8"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.13 2.06 2.06 0 010 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg> LinkedIn MCP</h3>
+            <p>Reads profiles &amp; analytics, searches jobs/people/companies, sends connection requests. <code>get_person_profile</code>, <code>search_jobs</code>, <code>search_people</code>, <code>connect_with_person</code>.</p>
+        </div>
+        <div class="infra-card">
+            <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c4a5e8" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Chrome MCP</h3>
+            <p>Drives a logged-in Chrome session (auto-started, no manual launch flags) to make profile edits LinkedIn's API can't — Open-to-Work, About, skills, projects. Uses the <code>pipeline</code> tool for multi-step edits.</p>
+        </div>
+        <div class="infra-card">
+            <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6dd5ed" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Dashboard + ACP</h3>
+            <p><code>mercury dashboard</code> opens a local hub (Svelte + SQLite) for hybrid search and the Launch tab, which runs any skill via <b>opencode</b> or <b>Claude Code</b> over ACP with a live agent stream.</p>
+        </div>
+    </div>
+
+    <div class="legend">
+        <span><span class="dot" style="background:#4db8e8"></span>LinkedIn MCP call</span>
+        <span><span class="dot" style="background:#c4a5e8"></span>Chrome MCP browser action</span>
+        <span><span class="dot" style="background:#a5b4fc"></span>Agent reasoning</span>
+        <span><span class="dot" style="background:#4ade80"></span>mercury CLI → SQLite</span>
+    </div>
+</div>
+</body>
+</html>

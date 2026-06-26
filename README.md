@@ -25,9 +25,9 @@ profile-optimizer → job-scout → resume-tailor → recruiter-outreach
 | **resume-tailor** | Takes your base resume + experience bank + scouted roles and produces role-tailored versions with gap analysis, ATS keyword alignment, and cover letters |
 | **recruiter-outreach** | Finds technical recruiters at target companies, prioritizes by proximity/mutuals, and sends tailored connection requests |
 
-See [`diagram.html`](diagram.html) for a visual of how the skills work together.
+See [`.assets/diagram.html`](.assets/diagram.html) for a visual of how the skills work together.
 
-![How Mercury skills work](diagram.png)
+![How Mercury works](.assets/diagram.png)
 
 ## The Dashboard
 
