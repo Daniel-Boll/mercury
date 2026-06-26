@@ -1,10 +1,11 @@
 ---
-name: linkedin-job-scout
+name: job-scout
 description: >-
   Search and evaluate open roles on LinkedIn matching a candidate's profile,
   target companies, locations, and compensation goals. Returns structured
   shortlists with fit assessment, job IDs, and direct links. Use when user
   wants to find roles at specific companies or in specific locations/work-types.
+  Part of the Mercury job search toolkit.
 ---
 
 # LinkedIn Job Scout

@@ -1,29 +1,66 @@
-# LinkedIn Skills for OpenCode
+# Mercury
 
-AI agent skills that audit, optimize, and automate LinkedIn profile management, job scouting, and recruiter outreach — using browser automation (Playwright) and the [LinkedIn MCP Server](https://github.com/stickerdaniel/linkedin-mcp-server).
+> Your AI-powered job search companion — LinkedIn profile optimization, job scouting, recruiter outreach, and resume tailoring in one toolkit.
 
-## What's Included
+Mercury is a collection of **AI agent skills** that automate your LinkedIn job search end-to-end. It works with any AI coding assistant that supports skill/instruction files (OpenCode, Cursor, Claude Code, Cline, Aider, etc.) paired with a [LinkedIn MCP Server](https://github.com/stickerdaniel/linkedin-mcp-server) and browser automation.
+
+## The Pipeline
+
+```
+profile-optimizer → job-scout → resume-tailor → recruiter-outreach
+     fix your         find the      tailor your      reach the
+     profile          roles          resume          recruiters
+```
+
+## Skills
 
 | Skill | What It Does |
 |---|---|
-| **linkedin-profile-optimizer** | Audits your profile against recruiter-search signals and fixes gaps via Playwright (Open to Work, headline, location, skills, languages, projects, About, experience) |
-| **linkedin-job-scout** | Searches LinkedIn Jobs by company/location/work-type, pulls full details, and presents a prioritized shortlist with fit assessment |
-| **linkedin-recruiter-outreach** | Finds technical recruiters at target companies, prioritizes by proximity/mutuals, and sends tailored connection requests |
+| **profile-optimizer** | Audits your LinkedIn profile against recruiter-search signals and fixes gaps (Open to Work, headline, location, skills, languages, projects, About, experience) |
+| **job-scout** | Searches LinkedIn Jobs by company/location/work-type, pulls full details, and presents a prioritized shortlist with fit assessment |
+| **resume-tailor** | Takes your base resume + scouted roles and produces role-tailored versions with gap analysis, ATS keyword alignment, and cover letters |
+| **recruiter-outreach** | Finds technical recruiters at target companies, prioritizes by proximity/mutuals, and sends tailored connection requests |
 
 See [`diagram.html`](diagram.html) for a visual of how the skills work together.
 
-![How the LinkedIn skills work](diagram.png)
+![How Mercury skills work](diagram.png)
+
+## The `.mercury/` Directory
+
+Mercury stores all job search artifacts in a `.mercury/` folder in your workspace:
+
+```
+.mercury/
+├── base/
+│   └── resume.typ              # Your canonical base resume
+├── tailored/
+│   ├── airbnb-4393940374.typ   # Tailored per role (company-jobId)
+│   ├── doordash-3969556398.typ
+│   └── uber-4380982336.typ
+├── cover-letters/
+│   ├── airbnb-4393940374.md    # Full cover letter per role
+│   └── ...
+├── reports/
+│   ├── airbnb-4393940374.md    # Gap/match analysis per role
+│   └── ...
+├── logs/
+│   ├── 2026-06-26T14:30:00.md  # Run history, diffs, keyword scores
+│   └── ...
+└── config.toml                 # Preferences (base resume path, format, targets)
+```
+
+Everything is tracked — you get full traceability of every tailoring run, outreach wave, and profile change.
 
 ## Requirements
 
 ### MCP Servers
 
 1. **[LinkedIn MCP Server](https://github.com/stickerdaniel/linkedin-mcp-server)** — Profile reading, job search, people search, connection requests
-2. **Playwright MCP Server** — Browser automation for profile edits (LinkedIn doesn't expose these via API)
+2. **Playwright MCP Server** (or equivalent browser automation) — For profile edits that LinkedIn doesn't expose via API
 
 ### Browser Setup
 
-The Playwright MCP connects via Chrome DevTools Protocol. You must launch your browser with remote debugging enabled:
+Browser automation connects via Chrome DevTools Protocol. Launch with remote debugging enabled:
 
 ```bash
 # Chrome
@@ -40,41 +77,41 @@ brave --remote-debugging-port=9222 --user-data-dir="$HOME/brave-cdp-profile"
 
 ## Installation
 
-Copy the `skills/` directory into your OpenCode config:
+Mercury skills are plain markdown files. Copy them into your AI assistant's skill directory:
 
+### OpenCode
 ```bash
-# Clone this repo
-git clone https://github.com/<your-username>/linkedin-opencode-skills.git
-cd linkedin-opencode-skills
-
-# Copy skills to your OpenCode config
 cp -r skills/* ~/.config/opencode/skills/
 ```
 
-Or symlink if you prefer to keep them in sync:
+### Cursor / Claude Code / Other
+```bash
+# Place in your project or global config — consult your tool's docs
+cp -r skills/* ~/.your-tool/skills/
+```
 
+Or symlink to stay in sync:
 ```bash
 for skill in skills/*/; do
   ln -sf "$(pwd)/$skill" ~/.config/opencode/skills/
 done
 ```
 
-The skills will appear in OpenCode's available skills list on next session.
-
 ## Usage
 
 The agent loads these skills automatically when your request matches their description. Examples:
 
-- *"Audit my LinkedIn profile and help me get more recruiter messages"* → loads `linkedin-profile-optimizer`
-- *"Find backend engineer roles at DoorDash and Airbnb in São Paulo"* → loads `linkedin-job-scout`
-- *"Find recruiters at Uber who hire in Brazil and connect with them"* → loads `linkedin-recruiter-outreach`
+- *"Audit my LinkedIn profile and help me get more recruiter messages"* → loads `profile-optimizer`
+- *"Find backend engineer roles at DoorDash and Airbnb in São Paulo"* → loads `job-scout`
+- *"Tailor my resume for these 3 roles I scouted"* → loads `resume-tailor`
+- *"Find recruiters at Uber who hire in Brazil and connect with them"* → loads `recruiter-outreach`
 
-## What the Agent Can Actually Do
+## What Mercury Can Do
 
 ### Profile Optimizer
 - Pull full profile analytics (search appearances, views, impressions)
 - Identify specific pitfalls ranked by recruiter-search impact
-- Edit via Playwright: Open to Work (recruiter-only), headline, location, top skills, languages, projects, About section, experience descriptions
+- Edit via browser automation: Open to Work (recruiter-only), headline, location, top skills, languages, projects, About section, experience descriptions
 - Remove internal-mobility cards that signal "not looking"
 
 ### Job Scout
@@ -82,6 +119,14 @@ The agent loads these skills automatically when your request matches their descr
 - Get full job descriptions with requirements and compensation
 - Assess fit (Strong / Good / Stretch) based on your profile
 - Flag diversity-scoped roles, staffing aggregators, and external ATS friction
+
+### Resume Tailor
+- Parse your base resume (Typst/MD/PDF/txt) + LinkedIn profile data
+- Batch-tailor to N scouted roles in one pass
+- Produce ATS-keyword-aligned Typst output per role
+- Generate full cover letters per role
+- Gap/match analysis showing what's strong, what's a stretch, what's missing
+- All outputs stored in `.mercury/` with full run logs
 
 ### Recruiter Outreach
 - Look up company URN IDs (required for LinkedIn's people search filter)
@@ -103,13 +148,21 @@ The agent loads these skills automatically when your request matches their descr
 
 ```
 skills/
-├── linkedin-job-scout/
+├── job-scout/
 │   └── SKILL.md
-├── linkedin-profile-optimizer/
+├── profile-optimizer/
 │   └── SKILL.md
-└── linkedin-recruiter-outreach/
-    └── SKILL.md
+├── recruiter-outreach/
+│   └── SKILL.md
+└── resume-tailor/
+    ├── SKILL.md
+    └── references/
+        └── examples.md
 ```
+
+## Keywords
+
+LinkedIn automation, job search AI, recruiter outreach, resume tailoring, profile optimization, ATS optimization, LinkedIn MCP, AI job hunting, career toolkit, LinkedIn bot, job scout, cover letter generator, LinkedIn skills for AI agents
 
 ## License
 

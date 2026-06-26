@@ -1,11 +1,11 @@
 ---
-name: linkedin-profile-optimizer
+name: profile-optimizer
 description: >-
   Audit and optimize a LinkedIn profile for recruiter discoverability using
   browser automation. Fixes Open to Work settings, headline keywords, location,
   top skills, languages, projects, About section, and experience descriptions.
   Use when user wants to improve their LinkedIn profile for job searching or
-  increase inbound recruiter messages.
+  increase inbound recruiter messages. Part of the Mercury job search toolkit.
 ---
 
 # LinkedIn Profile Optimizer

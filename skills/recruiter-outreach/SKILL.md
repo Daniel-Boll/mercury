@@ -1,10 +1,11 @@
 ---
-name: linkedin-recruiter-outreach
+name: recruiter-outreach
 description: >-
   Find technical recruiters at target companies on LinkedIn and send tailored
   connection requests. Looks up company URN IDs, searches by role+location,
   prioritizes by proximity and mutual connections, and sends notes under 300
   characters. Use when user wants to reach recruiters at specific companies.
+  Part of the Mercury job search toolkit.
 ---
 
 # LinkedIn Recruiter Outreach
