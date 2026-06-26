@@ -24,18 +24,28 @@ export async function post(path, body) {
  * auto-reconnects. Returns an unsubscribe fn.
  */
 const subs = new Set();
+const connListeners = new Set();
 let sharedWs;
 let retryTimer;
+let connected = false;
+
+function setConnected(value) {
+  if (connected === value) return;
+  connected = value;
+  for (const fn of connListeners) fn(connected);
+}
 
 function ensureWs() {
   if (sharedWs && sharedWs.readyState <= 1) return;
   sharedWs = new WebSocket(`ws://${location.host}/ws?token=${encodeURIComponent(TOKEN)}`);
+  sharedWs.onopen = () => setConnected(true);
   sharedWs.onmessage = (e) => {
     let msg;
     try { msg = JSON.parse(e.data); } catch { return; }
     for (const fn of subs) fn(msg);
   };
   sharedWs.onclose = () => {
+    setConnected(false);
     clearTimeout(retryTimer);
     retryTimer = setTimeout(ensureWs, 1500);
   };
@@ -45,6 +55,17 @@ export function subscribe(fn) {
   ensureWs();
   subs.add(fn);
   return () => subs.delete(fn);
+}
+
+/**
+ * Observe live socket connectivity. Calls fn(true/false) immediately with the
+ * current state, then on every change. Returns an unsubscribe fn.
+ */
+export function onConnection(fn) {
+  ensureWs();
+  connListeners.add(fn);
+  fn(connected);
+  return () => connListeners.delete(fn);
 }
 
 /** Back-compat helper: fire onChange(table) only on DB change events. */

@@ -1,5 +1,7 @@
 <script>
-  import { api, liveUpdates } from "./api.js";
+  import { api, onConnection } from "./api.js";
+  import { resource } from "./lib/resource.svelte.js";
+  import { useLiveTable } from "./lib/live.svelte.js";
   import Overview from "./sections/Overview.svelte";
   import Recruiters from "./sections/Recruiters.svelte";
   import Jobs from "./sections/Jobs.svelte";
@@ -11,11 +13,17 @@
   import Activity from "./sections/Activity.svelte";
 
   let active = $state("overview");
-  let overview = $state(null);
   let connected = $state(false);
 
-  // bump to force child re-fetch when the DB changes
-  let rev = $state(0);
+  // Overview drives the sidebar badges + the Overview page. Refresh it when any
+  // table that feeds its counts changes.
+  const overview = resource(() => api("overview"), null);
+  useLiveTable(
+    ["recruiters", "jobs", "interviews", "applications", "profile_metrics"],
+    overview.reload
+  );
+
+  $effect(() => onConnection((c) => (connected = c)));
 
   const nav = [
     { id: "overview", label: "Overview", icon: "◎" },
@@ -29,16 +37,7 @@
     { id: "activity", label: "Activity", icon: "≋" },
   ];
 
-  async function loadOverview() {
-    try { overview = await api("overview"); } catch {}
-  }
-
-  $effect(() => {
-    loadOverview();
-    const stop = liveUpdates(() => { rev++; loadOverview(); });
-    connected = true;
-    return stop;
-  });
+  let ov = $derived(overview.status === "ready" ? overview.data : null);
 </script>
 
 <div class="layout">
@@ -52,26 +51,28 @@
       >
         <span>{item.icon}</span>
         <span>{item.label}</span>
-        {#if item.id === "recruiters" && overview}<span class="badge">{overview.recruiters}</span>{/if}
-        {#if item.id === "interviews" && overview}<span class="badge">{overview.interviews}</span>{/if}
-        {#if item.id === "jobs" && overview}<span class="badge">{overview.jobs}</span>{/if}
+        {#if item.id === "recruiters" && ov}<span class="badge">{ov.recruiters}</span>{/if}
+        {#if item.id === "interviews" && ov}<span class="badge">{ov.interviews}</span>{/if}
+        {#if item.id === "jobs" && ov}<span class="badge">{ov.jobs}</span>{/if}
       </div>
     {/each}
     <div style="position:absolute;bottom:18px;left:14px;font-size:.74rem;" class="dim">
-      <span class="live-dot"></span> {connected ? "live" : "…"}
+      <span class="live-dot" style:background={connected ? "var(--green)" : "var(--dim)"}
+        style:box-shadow={connected ? "0 0 8px var(--green)" : "none"}></span>
+      {connected ? "live" : "offline"}
     </div>
   </aside>
 
   <main class="main">
-    {#if active === "overview"}<Overview {overview} {rev} onnav={(id) => (active = id)} />
-    {:else if active === "profile"}<Profile {rev} />
+    {#if active === "overview"}<Overview {overview} onnav={(id) => (active = id)} />
+    {:else if active === "profile"}<Profile />
     {:else if active === "search"}<Search />
     {:else if active === "launch"}<Launch />
-    {:else if active === "recruiters"}<Recruiters {rev} />
-    {:else if active === "jobs"}<Jobs {rev} />
-    {:else if active === "applications"}<Applications {rev} />
-    {:else if active === "interviews"}<Interviews {rev} />
-    {:else if active === "activity"}<Activity {rev} />
+    {:else if active === "recruiters"}<Recruiters />
+    {:else if active === "jobs"}<Jobs />
+    {:else if active === "applications"}<Applications />
+    {:else if active === "interviews"}<Interviews />
+    {:else if active === "activity"}<Activity />
     {/if}
   </main>
 </div>

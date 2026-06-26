@@ -1,11 +1,25 @@
 <script>
   import { api, post, subscribe } from "../api.js";
+  import { resource } from "../lib/resource.svelte.js";
+  import { useLiveTable } from "../lib/live.svelte.js";
+  import LoadingState from "../lib/LoadingState.svelte";
+  import ErrorState from "../lib/ErrorState.svelte";
   import uPlot from "uplot";
   import "uplot/dist/uPlot.min.css";
 
-  let { rev } = $props();
-  let metrics = $state([]);
-  let snapshot = $state(null);
+  // Combined data resource: metrics (trend) + snapshot (cards/breakdown).
+  const data = resource(
+    async () => {
+      const [metrics, snapshot] = await Promise.all([
+        api("metrics"),
+        api("profile-snapshot"),
+      ]);
+      return { metrics, snapshot };
+    },
+    { metrics: [], snapshot: null }
+  );
+  useLiveTable("profile_metrics", data.reload);
+
   let chartEl = $state();
   let plot;
 
@@ -13,17 +27,6 @@
   let scanning = $state(false);
   let scanLog = $state([]);
   let provider = $state("opencode");
-
-  async function load() {
-    try {
-      [metrics, snapshot] = await Promise.all([api("metrics"), api("profile-snapshot")]);
-    } catch {}
-  }
-
-  $effect(() => {
-    rev;
-    load();
-  });
 
   $effect(() => {
     api("acp/providers").then((p) => (provider = p.default)).catch(() => {});
@@ -33,7 +36,7 @@
           if (msg.skill !== "profile-optimizer") return;
           if (msg.status === "starting") { scanning = true; scanLog = ["▶ starting profile scan…"]; }
           else if (msg.status === "running") scanLog = [...scanLog, "● scanning your profile"];
-          else if (msg.status === "done") { scanning = false; scanLog = [...scanLog, "✓ scan complete"]; load(); }
+          else if (msg.status === "done") { scanning = false; scanLog = [...scanLog, "✓ scan complete"]; data.reload(); }
           break;
         case "acp-update": {
           if (!scanning) return;
@@ -48,19 +51,21 @@
         case "acp-exit":
           scanning = false;
           break;
-        case "changed":
-          if (msg.table === "profile_metrics") load();
-          break;
       }
     });
     return unsub;
   });
 
+  let metrics = $derived(data.data?.metrics ?? []);
+  let snapshot = $derived(data.data?.snapshot ?? null);
+  let hasScan = $derived(snapshot?.hasScan);
+  let breakdown = $derived(snapshot?.breakdown ?? []);
+
   $effect(() => {
     if (!chartEl || metrics.length === 0) return;
     const xs = metrics.map((m) => Date.parse(m.captured_at) / 1000);
     const series = (key) => metrics.map((m) => m[key] ?? null);
-    const data = [xs, series("profile_views"), series("search_appearances"), series("connections")];
+    const d = [xs, series("profile_views"), series("search_appearances"), series("connections")];
     plot?.destroy();
     plot = new uPlot(
       {
@@ -78,13 +83,10 @@
           { stroke: "#71717a", grid: { stroke: "#1f1f26" } },
         ],
       },
-      data,
+      d,
       chartEl
     );
   });
-
-  let hasScan = $derived(snapshot?.hasScan);
-  let breakdown = $derived(snapshot?.breakdown ?? []);
 
   async function scan() {
     scanLog = [];
@@ -95,7 +97,6 @@
     }
   }
 
-  // map a breakdown value to a status pill class
   function pillClass(value) {
     const v = String(value).toLowerCase();
     if (["true", "strong", "good", "ok", "yes", "done", "set"].some((s) => v.includes(s))) return "good";
@@ -121,7 +122,11 @@
   </div>
 {/if}
 
-{#if !hasScan}
+{#if data.status === "loading"}
+  <LoadingState rows={4} />
+{:else if data.status === "error"}
+  <ErrorState error={data.error} onretry={data.reload} />
+{:else if !hasScan}
   <div class="empty">
     No profile scan yet. Click <strong>Scan profile</strong> to run the
     <code>profile-optimizer</code> skill — it audits your LinkedIn profile, records

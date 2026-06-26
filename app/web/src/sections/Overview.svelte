@@ -1,5 +1,8 @@
 <script>
-  let { overview, rev, onnav } = $props();
+  import LoadingState from "../lib/LoadingState.svelte";
+  import ErrorState from "../lib/ErrorState.svelte";
+
+  let { overview, onnav } = $props();
 
   function pillClass(value) {
     const v = String(value).toLowerCase();
@@ -7,37 +10,42 @@
     if (["weak", "missing", "empty", "none", "no", "false", "todo"].some((s) => v.includes(s))) return "bad";
     return "neutral";
   }
-  let breakdown = $derived(overview?.breakdown ?? []);
+  let ov = $derived(overview.status === "ready" ? overview.data : null);
+  let breakdown = $derived(ov?.breakdown ?? []);
 </script>
 
 <h1 class="page-title">Overview</h1>
 <p class="page-sub">Your job search at a glance</p>
 
-{#if overview}
+{#if overview.status === "loading"}
+  <LoadingState rows={4} />
+{:else if overview.status === "error"}
+  <ErrorState error={overview.error} onretry={overview.reload} />
+{:else}
   <div class="cards">
     <div class="card" role="button" tabindex="0" onclick={() => onnav("profile")}>
       <div class="label">Profile Score</div>
-      <div class="value grad">{overview.score ?? "—"}</div>
+      <div class="value grad">{ov.score ?? "—"}</div>
     </div>
     <div class="card" role="button" tabindex="0" onclick={() => onnav("recruiters")}>
       <div class="label">Recruiters</div>
-      <div class="value">{overview.recruiters}</div>
+      <div class="value">{ov.recruiters}</div>
     </div>
     <div class="card">
       <div class="label">Accepted</div>
-      <div class="value" style="color:var(--green)">{overview.accepted}</div>
+      <div class="value" style="color:var(--green)">{ov.accepted}</div>
     </div>
     <div class="card">
       <div class="label">Replied</div>
-      <div class="value" style="color:var(--cyan)">{overview.replied}</div>
+      <div class="value" style="color:var(--cyan)">{ov.replied}</div>
     </div>
     <div class="card" role="button" tabindex="0" onclick={() => onnav("interviews")}>
       <div class="label">Interviews</div>
-      <div class="value" style="color:var(--purple)">{overview.interviews}</div>
+      <div class="value" style="color:var(--purple)">{ov.interviews}</div>
     </div>
     <div class="card" role="button" tabindex="0" onclick={() => onnav("jobs")}>
       <div class="label">Jobs Saved</div>
-      <div class="value">{overview.jobs}</div>
+      <div class="value">{ov.jobs}</div>
     </div>
   </div>
 
@@ -60,15 +68,13 @@
   <div class="panel">
     <h3>Pipeline health</h3>
     <p class="muted" style="font-size:.9rem;line-height:1.6">
-      {overview.recruiters} recruiters contacted · {overview.accepted} accepted ·
-      {overview.replied} replied · {overview.interviews} interviews scheduled.
-      {#if overview.score === null}
+      {ov.recruiters} recruiters contacted · {ov.accepted} accepted ·
+      {ov.replied} replied · {ov.interviews} interviews scheduled.
+      {#if ov.score === null}
         <br />Go to <a href={"#"} onclick={(e) => { e.preventDefault(); onnav("profile"); }}>Profile</a> and click <strong>Scan profile</strong> to capture your first score + breakdown.
       {/if}
     </p>
   </div>
-{:else}
-  <div class="empty">Loading…</div>
 {/if}
 
 <style>

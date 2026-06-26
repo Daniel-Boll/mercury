@@ -1,25 +1,32 @@
 <script>
   import { api } from "../api.js";
-  let { rev } = $props();
-  let rows = $state([]);
-  async function load() { try { rows = await api("interviews"); } catch {} }
-  $effect(() => { rev; load(); });
+  import { resource } from "../lib/resource.svelte.js";
+  import { useLiveTable } from "../lib/live.svelte.js";
+  import LoadingState from "../lib/LoadingState.svelte";
+  import ErrorState from "../lib/ErrorState.svelte";
+  import EmptyState from "../lib/EmptyState.svelte";
+
+  const interviews = resource(() => api("interviews"), []);
+  useLiveTable("interviews", interviews.reload);
 
   function daysUntil(d) {
     if (!d) return null;
-    const diff = Math.ceil((Date.parse(d) - Date.now()) / 86400000);
-    return diff;
+    return Math.ceil((Date.parse(d) - Date.now()) / 86400000);
   }
 </script>
 
 <h1 class="page-title">Interviews</h1>
-<p class="page-sub">{rows.length} scheduled</p>
+<p class="page-sub">{interviews.status === "ready" ? interviews.data.length : "—"} scheduled</p>
 
-{#if rows.length === 0}
-  <div class="empty">No interviews scheduled yet.</div>
+{#if interviews.status === "loading"}
+  <LoadingState />
+{:else if interviews.status === "error"}
+  <ErrorState error={interviews.error} onretry={interviews.reload} />
+{:else if interviews.data.length === 0}
+  <EmptyState message="No interviews scheduled yet." />
 {:else}
   <div class="cards">
-    {#each rows as iv}
+    {#each interviews.data as iv}
       {@const d = daysUntil(iv.scheduled_at)}
       <div class="card">
         <div class="label">{iv.company}</div>

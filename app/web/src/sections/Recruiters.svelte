@@ -1,25 +1,35 @@
 <script>
   import { api } from "../api.js";
-  let { rev } = $props();
-  let rows = $state([]);
+  import { resource } from "../lib/resource.svelte.js";
+  import { useLiveTable } from "../lib/live.svelte.js";
+  import LoadingState from "../lib/LoadingState.svelte";
+  import ErrorState from "../lib/ErrorState.svelte";
+  import EmptyState from "../lib/EmptyState.svelte";
 
   const COLS = ["pending", "accepted", "replied", "interviewing", "closed"];
 
-  async function load() {
-    try { rows = await api("recruiters"); } catch {}
-  }
-  $effect(() => { rev; load(); });
+  const recruiters = resource(() => api("recruiters"), []);
+  useLiveTable("recruiters", recruiters.reload);
 
   let byStatus = $derived(
-    COLS.reduce((acc, c) => { acc[c] = rows.filter((r) => r.status === c); return acc; }, {})
+    COLS.reduce((acc, c) => {
+      acc[c] = (recruiters.data ?? []).filter((r) => r.status === c);
+      return acc;
+    }, {})
   );
 </script>
 
 <h1 class="page-title">Recruiters</h1>
-<p class="page-sub">{rows.length} contacts across your outreach pipeline</p>
+<p class="page-sub">
+  {recruiters.status === "ready" ? recruiters.data.length : "—"} contacts across your outreach pipeline
+</p>
 
-{#if rows.length === 0}
-  <div class="empty">No recruiters yet. Run the <code>recruiter-outreach</code> skill.</div>
+{#if recruiters.status === "loading"}
+  <LoadingState rows={5} />
+{:else if recruiters.status === "error"}
+  <ErrorState error={recruiters.error} onretry={recruiters.reload} />
+{:else if recruiters.data.length === 0}
+  <EmptyState message="No recruiters yet." skill="recruiter-outreach" />
 {:else}
   <div class="kanban">
     {#each COLS as col}
