@@ -40,6 +40,10 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' package.json > "$tmp" && mv "$tmp" package.json
           echo "package.json version -> $(jq -r .version package.json)"
 
+      - name: Install dependencies
+        working-directory: app
+        run: bun install
+
       - name: Build all targets
         working-directory: app
         run: bun run build:targets
